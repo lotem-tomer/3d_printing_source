@@ -28,9 +28,15 @@
 #include <CGAL/convex_hull_3.h>
 #include <CGAL/predicates_on_points_3.h>
 
+#include <CGAL/Polyhedron_incremental_builder_3.h>
+#include <CGAL/Polyhedron_3.h>
+
 #include <CGAL/Arr_spherical_gaussian_map_3/Arr_polyhedral_sgm.h>
 #include <CGAL/Arr_spherical_gaussian_map_3/Arr_polyhedral_sgm_traits.h>
 #include <CGAL/Arr_spherical_gaussian_map_3/Arr_polyhedral_sgm_polyhedron_3.h>
+
+#include "Polyhedron_viewer.hpp"
+
 
 //#ifdef CGAL_USE_LEDA
 //#include <CGAL/leda_integer.h>
@@ -69,6 +75,11 @@ typedef K                                                          Gm_polyhedron
 typedef CGAL::Arr_polyhedral_sgm_polyhedron_3<Gm, Gm_polyhedron_traits> Gm_polyhedron;
 typedef CGAL::Arr_polyhedral_sgm_initializer<Gm, Gm_polyhedron>         Gm_initializer;
 typedef Gm_polyhedron::Edge_iterator									Poly_edge_iterator;
+
+//needed to build polyhedron from VRML file
+typedef Polyhedron_3::HalfedgeDS										    HalfedgeDS;
+typedef CGAL::Polyhedron_incremental_builder_3<HalfedgeDS>   			PolyBuilder;
+
 //void draw_points_and_hull(const std::vector<Point_3>& points,
 //                          const CGAL::Object& object)
 //{
@@ -102,8 +113,15 @@ typedef Gm_polyhedron::Edge_iterator									Poly_edge_iterator;
 //   std::cin >> wait;
 //}
 
-void read_input(std::string filename, Polyhedron_3& inp_poly) {
-	//TODO: replace this function with a real input reader from vrml
+static Polyhedron_viewer* s_polyhedron_viewer(nullptr);
+
+void read_input(const char* filename, Polyhedron_3& inp_poly) {
+	//Incremental_Polyhedron_Builder_3 builds a polyhedron from vertices and faces - just like in the parser in the sample viewer program.
+	//buy may be uneccessary...
+	//use polyhedron_viewer to parse vrml 
+	s_polyhedron_viewer->parse(filename);
+	Polyhedron_3 P = s_polyhedron_viewer->get_polyhedron;
+
 	std::vector<Point_3> points;
 	Generator gen(100.0);
 
