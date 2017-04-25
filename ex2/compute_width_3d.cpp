@@ -60,9 +60,10 @@ typedef double RT;
 
 // NOTE: the choice of double here for a number type may cause problems
 //       for degenerate point sets
-typedef CGAL::Homogeneous<RT>                     K;
+typedef CGAL::Exact_predicates_exact_constructions_kernel K;
 typedef CGAL::Convex_hull_traits_3<K>             Traits;
 typedef Traits::Polyhedron_3                      Polyhedron_3;
+typedef CGAL::Polyhedron_3<K>             Polyhedron;
 
 // define point creator
 typedef K::Point_3                                Point_3;
@@ -113,14 +114,14 @@ typedef CGAL::Polyhedron_incremental_builder_3<HalfedgeDS>   			PolyBuilder;
 //   std::cin >> wait;
 //}
 
-static Polyhedron_viewer* s_polyhedron_viewer(nullptr);
 
 void read_input(const char* filename, Polyhedron_3& inp_poly) {
-	//Incremental_Polyhedron_Builder_3 builds a polyhedron from vertices and faces - just like in the parser in the sample viewer program.
-	//buy may be uneccessary...
 	//use polyhedron_viewer to parse vrml 
+	static Polyhedron_viewer* s_polyhedron_viewer(nullptr);
 	s_polyhedron_viewer->parse(filename);
-	Polyhedron_3 P = s_polyhedron_viewer->get_polyhedron;
+	//auto poly  = s_polyhedron_viewer->get_polyhedron();
+	//inp_poly = Polyhedron_3(CGAL::convex_hull_3(poly.points_begin(), poly.points_end(), poly));
+	inp_poly = s_polyhedron_viewer->get_polyhedron();
 
 	std::vector<Point_3> points;
 	Generator gen(100.0);
