@@ -21,7 +21,7 @@
 #include <math.h>
 #include <CGAL/config.h>
 
-#include <CGAL/Homogeneous.h>
+#include <CGAL/simple_cartesian.h>
 #include <CGAL/point_generators_3.h>
 #include <CGAL/algorithm.h>
 #include <CGAL/Convex_hull_traits_3.h>
@@ -35,7 +35,7 @@
 #include <CGAL/Arr_spherical_gaussian_map_3/Arr_polyhedral_sgm_traits.h>
 #include <CGAL/Arr_spherical_gaussian_map_3/Arr_polyhedral_sgm_polyhedron_3.h>
 
-#include <viewer/Polyhedron_viewer.hpp>
+//#include <Polyhedron_viewer.hpp>
 
 
 //#ifdef CGAL_USE_LEDA
@@ -60,7 +60,7 @@
 
 // NOTE: the choice of double here for a number type may cause problems
 //       for degenerate point sets
-typedef CGAL::Exact_predicates_exact_constructions_kernel K;
+typedef CGAL::Simple_cartesian<double> K;
 typedef K::RT RT;
 typedef CGAL::Convex_hull_traits_3<K>             Traits;
 typedef Traits::Polyhedron_3                      Polyhedron_3;
@@ -118,20 +118,20 @@ typedef CGAL::Polyhedron_incremental_builder_3<HalfedgeDS>   			PolyBuilder;
 
 void read_input(std::string filename, Gm_polyhedron& inp_poly) {
 	//use polyhedron_viewer to parse vrml 
-	static Polyhedron_viewer* s_polyhedron_viewer(nullptr);
-	s_polyhedron_viewer->parse(filename.c_str());
-	auto poly  = s_polyhedron_viewer->get_polyhedron();
-	CGAL::convex_hull_3(poly.points_begin(), poly.points_end(), inp_poly);
+//	static Polyhedron_viewer* s_polyhedron_viewer(nullptr);
+//	s_polyhedron_viewer->parse(filename.c_str());
+//	auto poly  = s_polyhedron_viewer->get_polyhedron();
+//	CGAL::convex_hull_3(poly.points_begin(), poly.points_end(), inp_poly);
 	
 
-	//std::vector<Point_3> points;
-	//Generator gen(100.0);
+	std::vector<Point_3> points;
+	Generator gen(100.0);
 
-	//// generate num points and copy them to a vector
-	//CGAL::cpp11::copy_n(gen, 100, std::back_inserter(points));
+	//generate num points and copy them to a vector
+	CGAL::cpp11::copy_n(gen, 100, std::back_inserter(points));
 
-	//// compute convex hull
-	//CGAL::convex_hull_3(points.begin(), points.end(), inp_poly);
+	//compute convex hull
+	CGAL::convex_hull_3(points.begin(), points.end(), inp_poly);
 }
 
 void merge_coplanar_faces(Gm_polyhedron& poly) {
