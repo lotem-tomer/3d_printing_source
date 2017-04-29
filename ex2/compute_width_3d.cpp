@@ -153,7 +153,16 @@ void create_rotated_gm(const Gm& gm, Gm& rotated_gm) {
 	
 }
 
-void find_width_and_width_direction(Gm_polyhedron input_poly, Point_3& min_direction, RT& squared_width) {
+
+K::Plane_3 getPlane(const Gm::Vertex& v) {
+		Gm::Halfedge_around_vertex_const_circulator h = v.incident_halfedges();
+		return  K::Plane_3(h->face()->point(),
+			h->next()->face()->point(),
+			h->next()->next()->face()->point());
+
+};
+
+void find_width_and_width_direction(Gm_polyhedron input_poly, Gm::Point_2 min_direction, RT& squared_width) {
 	Gm_polyhedron ch_poly;
 	RT best_width1_squared, best_width2_squared;
 	K::Vector_3 best_dir;
@@ -166,18 +175,20 @@ void find_width_and_width_direction(Gm_polyhedron input_poly, Point_3& min_direc
 	Gm gm, rotateted_gm, mink_sum_gm;
 	Gm_initializer gm_initializer(gm);
 	gm_initializer(ch_poly);
-
+	bool is_first = true;
 	// create mirror gaussian map for finding coupled components in the opposite direction
 	create_rotated_gm(gm, rotateted_gm);
+	// calculate the minkowski sum (the minkowski facets are dual to the 
 	mink_sum_gm.minkowski_sum(gm, rotateted_gm);
 	
-	Gm::Vertex_const_iterator vi = ++mink_sum_gm.vertices_begin();
-	squared_width = CGAL::squared_distance(vi->face(), CGAL::ORIGIN);
-	
-	for (; fi != mink_sum_gm.faces_end(); ++fi) {
-		RT cur_width = (fi->point() - CGAL::ORIGIN).squared_length();
-		if (cur_width < squared_width){
-			squared_width = cur_width;
+	for (Gm::Vertex_const_iterator vi = mink_sum_gm.vertices_begin(); vi != mink_sum_gm.vertices_end(); ++vi) {
+		if (vi->degree()>2) {
+			RT cur_width = CGAL::squared_distance(getPlane(*vi), K::Point_3(CGAL::ORIGIN));
+			if (is_first || cur_width < squared_width) {
+				is_first = false;
+				squared_width = cur_width;
+				min_direction = vi->point();
+			}
 		}
 	}
 }
@@ -195,7 +206,7 @@ int main(int argc, char* argv[])
   Gm_polyhedron	input_poly;
   read_input(filename, input_poly);
 
-  Point_3 min_direction;
+  Gm::Point_2 min_direction;
   RT squared_width;
 
   find_width_and_width_direction(input_poly, min_direction, squared_width);
