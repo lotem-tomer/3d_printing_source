@@ -35,7 +35,7 @@
 #include <CGAL/Arr_spherical_gaussian_map_3/Arr_polyhedral_sgm_traits.h>
 #include <CGAL/Arr_spherical_gaussian_map_3/Arr_polyhedral_sgm_polyhedron_3.h>
 
-//#include <Polyhedron_viewer.hpp>
+#include <Polyhedron_viewer.hpp>
 
 
 //#ifdef CGAL_USE_LEDA
@@ -118,20 +118,27 @@ typedef CGAL::Polyhedron_incremental_builder_3<HalfedgeDS>   			PolyBuilder;
 
 void read_input(std::string filename, Gm_polyhedron& inp_poly) {
 	//use polyhedron_viewer to parse vrml 
-//	static Polyhedron_viewer* s_polyhedron_viewer(nullptr);
-//	s_polyhedron_viewer->parse(filename.c_str());
-//	auto poly  = s_polyhedron_viewer->get_polyhedron();
-//	CGAL::convex_hull_3(poly.points_begin(), poly.points_end(), inp_poly);
-	
-
+	static Polyhedron_viewer* s_polyhedron_viewer(nullptr);
 	std::vector<Point_3> points;
-	Generator gen(100.0);
+
+	s_polyhedron_viewer->parse(filename.c_str());
+	auto poly  = s_polyhedron_viewer->get_polyhedron();
+	for (auto i = poly.points_begin(); i != poly.points_end(); ++i) {
+		//points.push_back(Point_3(1, 2, 1));
+		double x = i->x().get_relative_precision_of_to_double();
+		double y =  i->y().get_relative_precision_of_to_double();
+		double z = i->z().get_relative_precision_of_to_double();
+		points.push_back(Point_3(x,y,z));
+	}
+	CGAL::convex_hull_3(points.begin(), points.end(), inp_poly);
+	
+//	Generator gen(100.0);
 
 	//generate num points and copy them to a vector
-	CGAL::cpp11::copy_n(gen, 100, std::back_inserter(points));
+//	CGAL::cpp11::copy_n(gen, 100, std::back_inserter(points));
 
 	//compute convex hull
-	CGAL::convex_hull_3(points.begin(), points.end(), inp_poly);
+//	CGAL::convex_hull_3(points.begin(), points.end(), inp_poly);
 }
 
 void merge_coplanar_faces(Gm_polyhedron& poly) {
