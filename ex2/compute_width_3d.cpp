@@ -35,7 +35,7 @@
 #include <CGAL/Arr_spherical_gaussian_map_3/Arr_polyhedral_sgm_traits.h>
 #include <CGAL/Arr_spherical_gaussian_map_3/Arr_polyhedral_sgm_polyhedron_3.h>
 
-#include "Polyhedron_viewer.hpp"
+#include <viewer/Polyhedron_viewer.hpp>
 
 
 //#ifdef CGAL_USE_LEDA
@@ -53,7 +53,7 @@
 //#endif
 //#endif
 
-typedef double RT;
+
 
 #include <vector>
 #include <cstdlib>
@@ -61,6 +61,7 @@ typedef double RT;
 // NOTE: the choice of double here for a number type may cause problems
 //       for degenerate point sets
 typedef CGAL::Exact_predicates_exact_constructions_kernel K;
+typedef K::RT RT;
 typedef CGAL::Convex_hull_traits_3<K>             Traits;
 typedef Traits::Polyhedron_3                      Polyhedron_3;
 typedef CGAL::Polyhedron_3<K>             Polyhedron;
@@ -115,22 +116,22 @@ typedef CGAL::Polyhedron_incremental_builder_3<HalfedgeDS>   			PolyBuilder;
 //}
 
 
-void read_input(const char* filename, Polyhedron_3& inp_poly) {
+void read_input(std::string filename, Gm_polyhedron& inp_poly) {
 	//use polyhedron_viewer to parse vrml 
 	static Polyhedron_viewer* s_polyhedron_viewer(nullptr);
-	s_polyhedron_viewer->parse(filename);
-	//auto poly  = s_polyhedron_viewer->get_polyhedron();
-	//inp_poly = Polyhedron_3(CGAL::convex_hull_3(poly.points_begin(), poly.points_end(), poly));
-	inp_poly = s_polyhedron_viewer->get_polyhedron();
+	s_polyhedron_viewer->parse(filename.c_str());
+	auto poly  = s_polyhedron_viewer->get_polyhedron();
+	CGAL::convex_hull_3(poly.points_begin(), poly.points_end(), inp_poly);
+	
 
-	std::vector<Point_3> points;
-	Generator gen(100.0);
+	//std::vector<Point_3> points;
+	//Generator gen(100.0);
 
-	// generate num points and copy them to a vector
-	CGAL::cpp11::copy_n(gen, 100, std::back_inserter(points));
+	//// generate num points and copy them to a vector
+	//CGAL::cpp11::copy_n(gen, 100, std::back_inserter(points));
 
-	// compute convex hull
-	CGAL::convex_hull_3(points.begin(), points.end(), inp_poly);
+	//// compute convex hull
+	//CGAL::convex_hull_3(points.begin(), points.end(), inp_poly);
 }
 
 void merge_coplanar_faces(Gm_polyhedron& poly) {
@@ -144,35 +145,41 @@ void merge_coplanar_faces(Gm_polyhedron& poly) {
 
 void create_rotated_gm(const Gm& gm, Gm& rotated_gm) {
 	rotated_gm = gm;
-	Gm::Point_2 p;
+	Gm::Dcel::Vertex::Point p;
 	for (Gm::Vertex_iterator v = rotated_gm.vertices_begin(); v != rotated_gm.vertices_end(); ++v) {
-		p = v->point();
-		p = Gm::Point_2(p.x + M_PI, -p.y, p.z);
+		p =  - v->point();
+		v->point() = p;
 	}
+	
 }
 
 void find_width_and_width_direction(Gm_polyhedron input_poly, Point_3& min_direction, RT& squared_width) {
 	Gm_polyhedron ch_poly;
 	RT best_width1_squared, best_width2_squared;
-	Point_3 best_dir1, best_dir2;
+	K::Vector_3 best_dir;
 
 	CGAL::convex_hull_3(input_poly.points_begin(), input_poly.points_end(), ch_poly);
 	// merge coplanar faces created by the convex hull algorithm
-	merge_coplanar_faces(ch_poly);
+	//merge_coplanar_faces(ch_poly);
 	// create gaussian map of the polyhedron
 
-	Gm gm, rotateted_gm;
+	Gm gm, rotateted_gm, mink_sum_gm;
 	Gm_initializer gm_initializer(gm);
 	gm_initializer(ch_poly);
 
 	// create mirror gaussian map for finding coupled components in the opposite direction
 	create_rotated_gm(gm, rotateted_gm);
-
-	// calc width at Vertex-Face Pair
-	calc_width_VF(gm, rotated_gm, best_width1_squared, best_dir1);
-
-	//calc width at Edge-Edge Pair
-	calc_width_EE(gm, rotated_gm, best_width2_squared, best_dir2);
+	mink_sum_gm.minkowski_sum(gm, rotateted_gm);
+	
+	Gm::Vertex_const_iterator vi = ++mink_sum_gm.vertices_begin();
+	squared_width = CGAL::squared_distance(vi->face(), CGAL::ORIGIN);
+	
+	for (; fi != mink_sum_gm.faces_end(); ++fi) {
+		RT cur_width = (fi->point() - CGAL::ORIGIN).squared_length();
+		if (cur_width < squared_width){
+			squared_width = cur_width;
+		}
+	}
 }
 
 int main(int argc, char* argv[])
@@ -185,7 +192,7 @@ int main(int argc, char* argv[])
   }
 
   std::string filename = std::string(argv[1]);
-  Polyhedron_3	input_poly;
+  Gm_polyhedron	input_poly;
   read_input(filename, input_poly);
 
   Point_3 min_direction;
