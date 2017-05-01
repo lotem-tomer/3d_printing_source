@@ -18,15 +18,16 @@
 //
 // Author(s)     : Susan Hert
 #define _USE_MATH_DEFINES
+#define CGAL_IDENTIFICATION_XY 2
 #include <math.h>
 #include <CGAL/config.h>
-
-#include <CGAL/simple_cartesian.h>
-#include <CGAL/point_generators_3.h>
+#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+#include <CGAL/Origin.h>
+#include <CGAL/Filtered_kernel.h>
+#include <CGAL/Gmpq.h>
 #include <CGAL/algorithm.h>
 #include <CGAL/Convex_hull_traits_3.h>
 #include <CGAL/convex_hull_3.h>
-#include <CGAL/predicates_on_points_3.h>
 
 #include <CGAL/Polyhedron_incremental_builder_3.h>
 #include <CGAL/Polyhedron_3.h>
@@ -35,7 +36,7 @@
 #include <CGAL/Arr_spherical_gaussian_map_3/Arr_polyhedral_sgm_traits.h>
 #include <CGAL/Arr_spherical_gaussian_map_3/Arr_polyhedral_sgm_polyhedron_3.h>
 
-#include <Polyhedron_viewer.hpp>
+#include "Polyhedron_viewer.hpp"
 
 
 //#ifdef CGAL_USE_LEDA
@@ -60,27 +61,38 @@
 
 // NOTE: the choice of double here for a number type may cause problems
 //       for degenerate point sets
-typedef CGAL::Simple_cartesian<double> K;
-typedef K::RT RT;
-typedef CGAL::Convex_hull_traits_3<K>             Traits;
-typedef Traits::Polyhedron_3                      Polyhedron_3;
-typedef CGAL::Polyhedron_3<K>             Polyhedron;
+typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
+typedef Kernel::RT                                        RT;
+typedef Kernel::Point_3                                   Point_3;
+typedef Kernel::Plane_3                                   Plane_3;
+typedef Kernel::Vector_3                                  Vector_3;
 
-// define point creator
-typedef K::Point_3                                Point_3;
-typedef CGAL::Creator_uniform_3<double, Point_3>  PointCreator;
-typedef CGAL::Random_points_in_sphere_3<Point_3, PointCreator> Generator;
+#if POLYHEDRON_TRAITS_WITH_NORMALS
+typedef CGAL::Polyhedron_traits_with_normals_3<Kernel>    Polyhedron_traits;
+#else
+typedef Kernel                                            Polyhedron_traits;
+#endif
 
-typedef CGAL::Arr_polyhedral_sgm_traits<K>                         Gm_traits;
+typedef CGAL::Aff_transformation_3<Kernel>				  Transformation_3;
+typedef CGAL::Polyhedron_3<Polyhedron_traits>             Polyhedron;
+typedef Polyhedron::Vertex                                Vertex;
+typedef Polyhedron::Facet                                 Facet;
+typedef Polyhedron::Facet_iterator                        Facet_iterator;
+typedef Polyhedron::Vertex_iterator                       Vertex_iterator;
+typedef Polyhedron::Point_iterator                        Point_iterator;
+typedef Polyhedron::Edge_iterator                         Edge_iterator;
+typedef Polyhedron::HalfedgeDS                            HalfedgeDS;
+
+
+
+
+typedef CGAL::Arr_polyhedral_sgm_traits<Kernel>                         Gm_traits;
 typedef CGAL::Arr_polyhedral_sgm<Gm_traits>                        Gm;
-typedef K                                                          Gm_polyhedron_traits;
+typedef Kernel                                                          Gm_polyhedron_traits;
 typedef CGAL::Arr_polyhedral_sgm_polyhedron_3<Gm, Gm_polyhedron_traits> Gm_polyhedron;
 typedef CGAL::Arr_polyhedral_sgm_initializer<Gm, Gm_polyhedron>         Gm_initializer;
 typedef Gm_polyhedron::Edge_iterator									Poly_edge_iterator;
 
-//needed to build polyhedron from VRML file
-typedef Polyhedron_3::HalfedgeDS										    HalfedgeDS;
-typedef CGAL::Polyhedron_incremental_builder_3<HalfedgeDS>   			PolyBuilder;
 
 //void draw_points_and_hull(const std::vector<Point_3>& points,
 //                          const CGAL::Object& object)
@@ -117,28 +129,13 @@ typedef CGAL::Polyhedron_incremental_builder_3<HalfedgeDS>   			PolyBuilder;
 
 
 void read_input(std::string filename, Gm_polyhedron& inp_poly) {
+
 	//use polyhedron_viewer to parse vrml 
-	static Polyhedron_viewer* s_polyhedron_viewer(nullptr);
-	std::vector<Point_3> points;
-
-	s_polyhedron_viewer->parse(filename.c_str());
-	auto poly  = s_polyhedron_viewer->get_polyhedron();
-	for (auto i = poly.points_begin(); i != poly.points_end(); ++i) {
-		//points.push_back(Point_3(1, 2, 1));
-		double x = i->x().get_relative_precision_of_to_double();
-		double y =  i->y().get_relative_precision_of_to_double();
-		double z = i->z().get_relative_precision_of_to_double();
-		points.push_back(Point_3(x,y,z));
-	}
+	 Polyhedron_viewer s_polyhedron_viewer;
+	s_polyhedron_viewer.parse(filename.c_str());
+	auto poly  = s_polyhedron_viewer.get_polyhedron();
+	std::vector<Polyhedron_viewer::Point_3> points(poly.points_begin(), poly.points_end());
 	CGAL::convex_hull_3(points.begin(), points.end(), inp_poly);
-	
-//	Generator gen(100.0);
-
-	//generate num points and copy them to a vector
-//	CGAL::cpp11::copy_n(gen, 100, std::back_inserter(points));
-
-	//compute convex hull
-//	CGAL::convex_hull_3(points.begin(), points.end(), inp_poly);
 }
 
 void merge_coplanar_faces(Gm_polyhedron& poly) {
@@ -150,51 +147,50 @@ void merge_coplanar_faces(Gm_polyhedron& poly) {
 	}
 }
 
-void create_rotated_gm(const Gm& gm, Gm& rotated_gm) {
+void create_rotated_gm(const Gm & gm, Gm & rotated_gm) {
 	rotated_gm = gm;
-	Gm::Dcel::Vertex::Point p;
-	for (Gm::Vertex_iterator v = rotated_gm.vertices_begin(); v != rotated_gm.vertices_end(); ++v) {
-		p =  - v->point();
-		v->point() = p;
+	for (auto i = rotated_gm.vertices_begin(); i != rotated_gm.vertices_end(); i++) {
+		auto p = -(i->point());
+		i->point() = p;
 	}
-	
 }
 
 
-K::Plane_3 getPlane(const Gm::Vertex& v) {
+Kernel::Plane_3 getPlane(const Gm::Vertex& v) {
 		Gm::Halfedge_around_vertex_const_circulator h = v.incident_halfedges();
-		return  K::Plane_3(h->face()->point(),
+		return  Kernel::Plane_3(h->face()->point(),
 			h->next()->face()->point(),
 			h->next()->next()->face()->point());
 
 };
 
-void find_width_and_width_direction(Gm_polyhedron input_poly, Gm::Point_2 min_direction, RT& squared_width) {
-	Gm_polyhedron ch_poly;
-	RT best_width1_squared, best_width2_squared;
-	K::Vector_3 best_dir;
 
-	CGAL::convex_hull_3(input_poly.points_begin(), input_poly.points_end(), ch_poly);
+void find_width_and_width_direction(Gm_polyhedron input_poly, Gm::Point_2 min_direction, RT& squared_width) {
+	Gm_polyhedron ch_poly,reflected_poly;
+	RT best_width1_squared, best_width2_squared;
+	Kernel::Vector_3 best_dir;
+
+	CGAL::convex_hull_3(input_poly.points_begin(), input_poly.points_end(), ch_poly); //not really needed - input_poly is already a convex hull
 	// merge coplanar faces created by the convex hull algorithm
 	//merge_coplanar_faces(ch_poly);
 	// create gaussian map of the polyhedron
 
-	Gm gm, rotateted_gm, mink_sum_gm;
+	Gm gm, rotated_gm, mink_sum_gm;
 	Gm_initializer gm_initializer(gm);
 	gm_initializer(ch_poly);
+	create_rotated_gm(gm, rotated_gm);
 	bool is_first = true;
 	// create mirror gaussian map for finding coupled components in the opposite direction
-	create_rotated_gm(gm, rotateted_gm);
 	// calculate the minkowski sum (the minkowski facets are dual to the 
-	mink_sum_gm.minkowski_sum(gm, rotateted_gm);
-	
+	mink_sum_gm.minkowski_sum(gm, rotated_gm);
 	for (Gm::Vertex_const_iterator vi = mink_sum_gm.vertices_begin(); vi != mink_sum_gm.vertices_end(); ++vi) {
 		if (vi->degree()>2) {
-			RT cur_width = CGAL::squared_distance(getPlane(*vi), K::Point_3(CGAL::ORIGIN));
+			RT cur_width = CGAL::squared_distance(getPlane(*vi), Kernel::Point_3(CGAL::ORIGIN));
 			if (is_first || cur_width < squared_width) {
 				is_first = false;
 				squared_width = cur_width;
 				min_direction = vi->point();
+				std::cout << squared_width << std::endl;
 			}
 		}
 	}
@@ -208,19 +204,19 @@ int main(int argc, char* argv[])
       std::cerr << "Usage: " << argv[0] << " filename " << std::endl;
       std::exit(0);
   }
-
   std::string filename = std::string(argv[1]);
   Gm_polyhedron	input_poly;
   read_input(filename, input_poly);
 
   Gm::Point_2 min_direction;
   RT squared_width;
-
   find_width_and_width_direction(input_poly, min_direction, squared_width);
   
+  std::cout << "squared width: " << squared_width;
 
 
   //draw_points_and_hull(points, ch_object);
   return 0;
+  
 }
 
