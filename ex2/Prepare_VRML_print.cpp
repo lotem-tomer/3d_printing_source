@@ -262,10 +262,10 @@ int main(int argc, char* argv[]){
 	//make changes to VRML file - and output new processed file.
 
 		// create transform header
-	std::string transformHeader = "translation 0 0 " + std::to_string(-1 * CGAL::to_double(min_z));
+	std::string transformHeader = "translation 0 0 " + std::to_string(-1 * CGAL::to_double(min_z)*scale);
 
 		// create translate header
-	std::string translateHeader = "rotation " + std::to_string(u.at(0)) + std::to_string(u.at(1)) + std::to_string(u.at(2)) + " 0  # " + std::to_string(asin(sin_theta) * 180 / M_PI) + " deg.";
+	std::string translateHeader = "rotation " + std::to_string(u.at(0)) + std::to_string(u.at(1)) + std::to_string(u.at(2)) + " 0  # " + std::to_string(acos(cos_theta) * 180 / M_PI) + " deg.";
 
 		// create scale header
 	std::string scaleHeader = "scale " + std::to_string(scale) + " " + std::to_string(scale) + " "+ std::to_string(scale);
