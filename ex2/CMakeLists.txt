@@ -172,7 +172,7 @@ if ( CGAL_FOUND )
   
   include_directories(${VRML_READER_INCLUDE_DIR})
   
-  set(SRCS "compute_width_3d_2_1_c.cpp;parse.cpp;Polyhedron_viewer.cpp")
+  set(SRCS "prepare_VRML_print.cpp;parse.cpp;Polyhedron_viewer.cpp")
   link_directories($ENV{BOOST_DIR}/lib)
   add_executable(compute_width_3d_2_1_c ${SRCS})
   
