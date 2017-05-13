@@ -80,41 +80,6 @@ struct Plane_equation {
 };
 
 
-void read_input_hacky(std::string filename, Gm_polyhedron& inp_poly) {	//lines from VRML file
-	std::string line;
-	std::vector<Point_3> m_coords;
-	std::ifstream VRMLfile("C:/3DPrintingAlgorithms/HW2/3d_printing_source/ex2/Release/mushroom_points.txt");
-	if (VRMLfile.is_open()) {
-	//	std::cout << "file opened" << std::endl;
-	}
-	std::vector<std::string> results;
-	typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-	boost::char_separator<char> sep(", \t\n\r");
-	//std::getline(VRMLfile, line);
-	int num_of_lines = 0;
-	int j = 0;
-	while (std::getline(VRMLfile, line)) {
-		num_of_lines++;
-		tokenizer tokens(line, sep);
-		//std::cout << line << std::endl;
-		size_t size = 0;
-		for (auto it = tokens.begin(); it != tokens.end(); ++it) ++size;
-		size = size / 3;
-		std::istringstream svalue_coords(line, std::istringstream::in);
-		for (size_t i = 0; i < size; i++) {
-			K::RT x, y, z;
-			svalue_coords >> x >> y >> z;
-	//		std::cout << x << " " << y << " " << z << std::endl;
-			m_coords.push_back(Point_3(x, y, z));
-		}
-	}
-	VRMLfile.close();
-	//std::cout << m_coords.size();
-	CGAL::convex_hull_3(m_coords.begin(), m_coords.end(), inp_poly);
-	std::transform(inp_poly.facets_begin(), inp_poly.facets_end(), inp_poly.planes_begin(),
-		Plane_equation());
-}
-
 
 void read_input(std::string filename, Gm_polyhedron& inp_poly) {
 	//use polyhedron_viewer to parse vrml 
@@ -220,28 +185,28 @@ void find_width_and_width_direction(Gm_polyhedron input_poly, Gm::Point_2& min_d
 int main(int argc, char* argv[]){
 	
 
-	if (argc != 2)
+	if (argc !=3)
 	{
-		std::cerr << "Usage: " << argv[0] << " filename " << std::endl;
-		std::cerr << "Usage: " << argv[0] << "0 - approximate width; 1- exact width " << std::endl;
+		std::cerr << "Usage: " << "argv[1]: " << " filename " << std::endl;
+		std::cerr << "Usage: " << "argv[2]: " << " 1 - approximate width; 0- exact width " << std::endl;
 		std::exit(0);
 	}
 
 	std::string filename = std::string(argv[1]);
 
-	//bool flag = argv[1]; //0 - calculate apprximate width; 1- calculate exact width
-	bool flag = 1;
+	//int flag = argv[2]; //1 - calculate apprximate width; 0- calculate exact width
+	int flag = 1;
 	Gm_polyhedron poly;
 	Gm::Point_2 min_direction;
 	RT squared_width;
 
 	//get VRML polygon - using read_input function
-	read_input_hacky(filename, poly);
+	read_input(filename, poly);
 
 	switch (flag) {
-	case 1: //calculate vector V of minimal width using exact algorithm
+	case 0: //calculate vector V of minimal width using exact algorithm
 		find_width_and_width_direction(poly, min_direction,squared_width);
-	case 0: // calculate vector V of minmal width using approximate algorithm
+	case 1: // calculate vector V of minmal width using approximate algorithm
 		find_width_and_width_direction(poly, min_direction, squared_width);
 	}
 
@@ -295,9 +260,9 @@ int main(int argc, char* argv[]){
 
 	double scale = 100/std::max({ dx, dy, dz }); //assuming model units are in mm...
 
-	std::cout << max_x << " " << min_x << std::endl;
-	std::cout << max_y << " " << min_y << std::endl;
-	std::cout << max_z << " " << min_z << std::endl;
+	//std::cout << max_x << " " << min_x << std::endl;
+	//std::cout << max_y << " " << min_y << std::endl;
+	//std::cout << max_z << " " << min_z << std::endl;
 
 
 	//make changes to VRML file - and output new processed file.
