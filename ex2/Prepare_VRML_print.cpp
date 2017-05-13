@@ -34,6 +34,9 @@
 #include <CGAL/Polyhedron_3.h>
 #include <CGAL/Direction_3.h>
 
+#include <boost/tokenizer.hpp>
+#include <boost/type_traits.hpp>
+
 #include <CGAL/Arr_spherical_gaussian_map_3/Arr_polyhedral_sgm.h>
 #include <CGAL/Arr_spherical_gaussian_map_3/Arr_polyhedral_sgm_traits.h>
 #include <CGAL/Arr_spherical_gaussian_map_3/Arr_polyhedral_sgm_polyhedron_3.h>
@@ -50,6 +53,7 @@
 typedef CGAL::Exact_predicates_exact_constructions_kernel K;
 typedef K::RT RT;
 typedef K::Vector_3							  Vector_3;
+typedef K::Point_3                                Point_3;
 typedef CGAL::Convex_hull_traits_3<K>             Traits;
 typedef Traits::Polyhedron_3                      Polyhedron_3;
 typedef CGAL::Polyhedron_3<K>             Polyhedron;
@@ -75,6 +79,41 @@ struct Plane_equation {
 	}
 };
 
+
+void read_input_hacky(std::string filename, Gm_polyhedron& inp_poly) {	//lines from VRML file
+	std::string line;
+	std::vector<Point_3> m_coords;
+	std::ifstream VRMLfile("C:/3DPrintingAlgorithms/HW2/3d_printing_source/ex2/Release/mushroom_points.txt");
+	if (VRMLfile.is_open()) {
+	//	std::cout << "file opened" << std::endl;
+	}
+	std::vector<std::string> results;
+	typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+	boost::char_separator<char> sep(", \t\n\r");
+	//std::getline(VRMLfile, line);
+	int num_of_lines = 0;
+	int j = 0;
+	while (std::getline(VRMLfile, line)) {
+		num_of_lines++;
+		tokenizer tokens(line, sep);
+		//std::cout << line << std::endl;
+		size_t size = 0;
+		for (auto it = tokens.begin(); it != tokens.end(); ++it) ++size;
+		size = size / 3;
+		std::istringstream svalue_coords(line, std::istringstream::in);
+		for (size_t i = 0; i < size; i++) {
+			K::RT x, y, z;
+			svalue_coords >> x >> y >> z;
+	//		std::cout << x << " " << y << " " << z << std::endl;
+			m_coords.push_back(Point_3(x, y, z));
+		}
+	}
+	VRMLfile.close();
+	//std::cout << m_coords.size();
+	CGAL::convex_hull_3(m_coords.begin(), m_coords.end(), inp_poly);
+	std::transform(inp_poly.facets_begin(), inp_poly.facets_end(), inp_poly.planes_begin(),
+		Plane_equation());
+}
 
 
 void read_input(std::string filename, Gm_polyhedron& inp_poly) {
@@ -197,7 +236,7 @@ int main(int argc, char* argv[]){
 	RT squared_width;
 
 	//get VRML polygon - using read_input function
-	read_input(filename, poly);
+	read_input_hacky(filename, poly);
 
 	switch (flag) {
 	case 1: //calculate vector V of minimal width using exact algorithm
@@ -214,12 +253,12 @@ int main(int argc, char* argv[]){
 	Vector_3 cross = CGAL::cross_product(min_dir_vec,XY_Normal);
 	double cos_theta = CGAL::to_double(min_dir_vec.z()) / std::sqrt(CGAL::to_double(min_dir_vec.squared_length()));
 	double sin_theta = std::sqrt(1 - cos_theta*cos_theta);
-	std::cout << cos_theta << " " << sin_theta << std::endl;
+	//std::cout << cos_theta << " " << sin_theta << std::endl;
 	// normalize vector for rotation
 //	std::vector<double> u{ std::sqrt(CGAL::to_double((cross.x()*cross.x()) / cross.squared_length())), std::sqrt(CGAL::to_double((cross.y()*cross.y()) / cross.squared_length())), std::sqrt(CGAL::to_double((cross.z()*cross.z()) / cross.squared_length())) }; 
 	double vec_length = std::sqrt(CGAL::to_double(cross.squared_length()));
 	std::vector<double> u{ CGAL::to_double(cross.x()) / vec_length, CGAL::to_double(cross.y()) / vec_length, CGAL::to_double(cross.z()) / vec_length };
-	std::cout << u.at(0) << " " << u.at(1) << " " << u.at(2) << std::endl;
+//	std::cout << u.at(0) << " " << u.at(1) << " " << u.at(2) << std::endl;
 
 	//matrix for rotation
 	K::RT m00 = K::RT(cos_theta + u.at(0)*u.at(0)*(1-cos_theta)); K::RT m01 = K::RT(u.at(0)*u.at(1)*(1-cos_theta)) ; K::RT m02 = K::RT(u.at(1)*sin_theta);
@@ -243,21 +282,23 @@ int main(int argc, char* argv[]){
 	for (auto i = poly.points_begin(); i != poly.points_end(); ++i) {
 		if (i->x() < min_x) { min_x = i->x(); }
 		if (i->x() > max_x) { max_x = i->x(); }
-		if (i->x() < min_y) { min_y = i->y(); }
-		if (i->x() > max_y) { max_y = i->y(); }
-		if (i->x() < min_z) { min_z = i->z(); }
-		if (i->x() > max_z) { max_z = i->z(); }
+		if (i->y() < min_y) { min_y = i->y(); }
+		if (i->y() > max_y) { max_y = i->y(); }
+		if (i->z() < min_z) { min_z = i->z(); }
+		if (i->z() > max_z) { max_z = i->z(); }
 	}
 
 	double dx = std::abs(CGAL::to_double(max_x - min_x));
 	double dy = std::abs(CGAL::to_double(max_y - min_y));
 	double dz = std::abs(CGAL::to_double(max_z - min_z));
 
-	for (auto i = poly.points_begin(); i != poly.points_end(); ++i) {
-		std::cout << i->x() << " " << i->y() << " " << i->z() << " " <<std::endl;
-	}
 
 	double scale = 100/std::max({ dx, dy, dz }); //assuming model units are in mm...
+
+	std::cout << max_x << " " << min_x << std::endl;
+	std::cout << max_y << " " << min_y << std::endl;
+	std::cout << max_z << " " << min_z << std::endl;
+
 
 	//make changes to VRML file - and output new processed file.
 
@@ -265,10 +306,10 @@ int main(int argc, char* argv[]){
 	std::string transformHeader = "translation 0 0 " + std::to_string(-1 * CGAL::to_double(min_z)*scale);
 
 		// create translate header
-	std::string translateHeader = "rotation " + std::to_string(u.at(0)) + std::to_string(u.at(1)) + std::to_string(u.at(2)) + " 0  # " + std::to_string(acos(cos_theta) * 180 / M_PI) + " deg.";
+	std::string translateHeader = "rotation " + std::to_string(u.at(0)) +" " +std::to_string(u.at(1)) + " 0  # " + std::to_string(acos(cos_theta) * 180 / M_PI) + " deg.";
 
 		// create scale header
-	std::string scaleHeader = "scale " + std::to_string(scale) + " " + std::to_string(scale) + " "+ std::to_string(scale);
+	std::string scaleHeader = "scale " + std::to_string(scale) + " " + std::to_string(scale) + " " + std::to_string(scale);
 
 	//lines from VRML file
 	std::string line;
