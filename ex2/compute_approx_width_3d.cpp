@@ -236,8 +236,8 @@ int main(int argc, char* argv[])
   double secs = timer.elapsed();
 
   // write output
-  std::cout << "The square of the width of the polyhedron is " << squared_width << std::endl;
-  std::cout << "The direction of the width vector is" << min_direction << std::endl;
+  std::cout << "The square of the approximate width of the polyhedron is " << squared_width << std::endl;
+  std::cout << "The direction of the approximate width vector is" << min_direction << std::endl;
   std::cout << "The execution time was " << secs << std::endl;
   return 0;
 }
