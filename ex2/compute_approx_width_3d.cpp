@@ -213,13 +213,14 @@ void find_width_and_width_direction(Gm_polyhedron input_poly, Gm::Point_2& min_d
 int main(int argc, char* argv[])
 {
   // parse input
-  if (argc != 2)
+  if (argc != 3)
   {
-      std::cerr << "Usage: " << argv[0] << " filename " << std::endl;
+      std::cerr << "Usage: " << argv[0] << " [filename] [epsilon]" << std::endl;
       std::exit(0);
   }
 
   std::string filename = std::string(argv[1]);
+  RT epsilon = RT(std::string(argv[2]));
   Gm_polyhedron	input_poly;
   read_input(filename, input_poly);
 
