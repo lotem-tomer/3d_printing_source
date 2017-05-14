@@ -137,14 +137,14 @@ void merge_coplanar_faces(Gm_polyhedron& poly) {
 	Gm_polyhedron::Plane_3 p1, p2;
 	K::Vector_3 v1, v2;
 
-	for (Gm_polyhedron::Point_const_iterator p = poly.points_begin(); p!=poly.points_end(); ++p)
-		std::cout << *p << std::endl;
+	//for (Gm_polyhedron::Point_const_iterator p = poly.points_begin(); p!=poly.points_end(); ++p)
+	//	std::cout << *p << std::endl;
 
 	for (Poly_edge_iterator e = poly.edges_begin(); e!=poly.edges_end(); ++e) {
 		p1 = e->facet()->plane(); p2 = e->opposite()->facet()->plane();
-		v1 = p1.orthogonal_vector(); v2 = p2.orthogonal_vector();
-		std::cout << v1 << std::endl;
-		std::cout << v2 << std::endl;
+		//v1 = p1.orthogonal_vector(); v2 = p2.orthogonal_vector();
+		//std::cout << v1 << std::endl;
+		//std::cout << v2 << std::endl;
 		if ( p1 == p2) {
 			e = poly.join_facet(e);
 		}
@@ -179,7 +179,7 @@ K::Plane_3 get_ms_plane_from_gm_vertex(const Gm::Vertex& v) {
 		for (int i = 0; i<3; ++i)
 			p[i] = (++h)->face()->point();
 
-		std::cout << p[0] << std::endl << p[1] << std::endl << p[2] << std::endl;
+		//std::cout << p[0] << std::endl << p[1] << std::endl << p[2] << std::endl;
 		return  K::Plane_3(p[0], p[1], p[2]);
 
 };
